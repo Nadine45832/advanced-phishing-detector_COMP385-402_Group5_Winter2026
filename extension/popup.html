@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+    h2 {
+      color: #4CAF50;
+      font-size: 18px;
+      margin: 0 0 15px 0;
+    }
+    .info {
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 5px;
+      font-size: 12px;
+    }
+    .label {
+      font-weight: bold;
+      color: #555;
+    }
+    .value {
+      color: #333;
+      word-break: break-all;
+    }
+    .status {
+      padding: 8px;
+      border-radius: 5px;
+      text-align: center;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .active {
+      background: #d4edda;
+      color: #155724;
+    }
+    .inactive {
+      background: #fff3cd;
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+  <h2>Advanced Phishing detector</h2>
+  
+  <div class="info">
+    <div class="label">Target Domain:</div>
+    <div class="value" id="domain">Loading...</div>
+  </div>
+  
+  <div class="info">
+    <div class="label">Target Path:</div>
+    <div class="value" id="path">Loading...</div>
+  </div>
+  
+  <div class="info">
+    <div class="label">Content Selector:</div>
+    <div class="value" id="selector">Loading...</div>
+  </div>
+  
+  <div id="status" class="status">Extension is active</div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
