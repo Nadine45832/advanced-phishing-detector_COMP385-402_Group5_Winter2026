@@ -31,3 +31,12 @@
     "128": "icon128.png"
   }
 }
+
+{
+  "phishing_probability": 0.82,
+  "risk_level": "high",
+  "reasons": ["Suspicious link domain", "Urgent language detected"],
+  "action": "warn"
+}
+
+
