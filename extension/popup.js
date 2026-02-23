@@ -12,7 +12,6 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
   }).then((results) => {
     if (results && results[0] && results[0].result) {
       const config = results[0].result;
-      debugger;
       
       document.getElementById('domain').textContent = config.targetDomain || 'Not set';
       document.getElementById('path').textContent = config.targetPath || 'All paths';
