@@ -87,6 +87,7 @@ def augment_phishing_class(df, n=3, amount=1000):
     print(f"Total {generated}")
 
     augmented_df = pd.DataFrame(augmented_samples)
+
     balanced_df = pd.concat([safe_emails, phishing_emails, augmented_df], 
                             ignore_index=True)
 

@@ -209,3 +209,5 @@ __marimo__/
 
 .vscode
 .DS_Store
+
+phishing_model.pkl

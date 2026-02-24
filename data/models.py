@@ -9,8 +9,10 @@ import scipy.sparse as sp
 URL_FEAT_COLS = [
     "url_count", "avg_url_len", "max_url_len",
     "has_ip_url", "suspicious_tld",
-    "url_digit_ratio", "url_hyphen_count", "susp_words",
+    "url_digit_ratio", "url_hyphen_count"
 ]
+
+CLEAN_TEXT_COLUMN = "clean_email_text"
 
 
 class DenseToSparse(BaseEstimator, TransformerMixin):
@@ -32,13 +34,13 @@ class HybridFeatures(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         self.tfidf_ = TfidfVectorizer(**self.tfidf_params)
-        self.tfidf_.fit(X["clean_text"])
+        self.tfidf_.fit(X[CLEAN_TEXT_COLUMN])
         self.url_scaler_ = DenseToSparse(URL_FEAT_COLS)
         self.url_scaler_.fit(X)
         return self
 
     def transform(self, X):
-        text_mat = self.tfidf_.transform(X["clean_text"])
+        text_mat = self.tfidf_.transform(X[CLEAN_TEXT_COLUMN])
         url_mat = self.url_scaler_.transform(X)
         return sp.hstack([text_mat, url_mat], format="csr")
 
@@ -53,9 +55,9 @@ DEFAULT_TFIDF = dict(
 
 
 def create_model():
-    Pipeline([
+    return Pipeline([
         ("features", HybridFeatures(DEFAULT_TFIDF)),
         ("clf",      LogisticRegression(
-            max_iter=2000, solver="saga", class_weight="balanced"
+            max_iter=5000, solver="saga", class_weight="balanced"
         )),
     ])

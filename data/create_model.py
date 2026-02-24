@@ -6,8 +6,10 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from augment_emails import augment_phishing_class
 from analyze_data import analyze, tfidf_analyz
+from evaluate_model import evaluate_models
 from models import create_model, URL_FEAT_COLS
 from sklearn.model_selection import train_test_split
+import joblib
 
 
 CSV_PATH = "emails.csv"
@@ -60,10 +62,8 @@ def replace_email_urls(text):
 def transform_data(df):
     df["urls"] = df[TEXT_COLUMN].apply(get_urls)
 
-    df["url_count"] = df["urls"].apply(len)
-
     url_feat_df = df["urls"].apply(url_features).apply(pd.Series)
-    #df = pd.concat([df, url_feat_df], axis=1)
+    df = pd.concat([df, url_feat_df], axis=1)
 
     df[TEXT_COLUMN] = df[TEXT_COLUMN].apply(replace_email_urls)
     return df
@@ -97,9 +97,15 @@ def url_features(urls):
 def prepare(df):
     duplicate_count = df.duplicated().sum()
     print(f"\nNumber of duplicate rows: {duplicate_count}")
+    
+    print(df.head(3))
+    print(df.shape)
 
     # basic transform, remove link and store them separatly
     df = transform_data(df)
+
+    print(df.head(3))
+    print(df.shape)
 
     df[CLEAN_TEXT_COLUMN] = df[TEXT_COLUMN].apply(clean_text)
 
@@ -117,13 +123,16 @@ def main():
     model = create_model()
 
     X = df[[CLEAN_TEXT_COLUMN] + URL_FEAT_COLS]
-    y = df[LABEL_COLUMN].values
+    y = df[LABEL_COLUMN]
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, stratify=y, random_state=47
     )
 
-    model.fit(X_train, X_test)
+    model.fit(X_train, y_train)
+    evaluate_models(model, X_test, y_test)
+
+    joblib.dump(model, "phishing_model.pkl")
 
 
 main()
