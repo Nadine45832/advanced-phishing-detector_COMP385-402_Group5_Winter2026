@@ -3,6 +3,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import re
 from urllib.parse import urlparse
+import joblib
+from shared.clean_text import clean_text, transform_email_text
+import pandas as pd
 
 app = FastAPI(title="Phishing Detector API", version="1.0")
 
@@ -86,7 +89,6 @@ def score_email(subject: str, from_addr: str, body: str, links: List[LinkItem]) 
             suspicious_link_count += 1
             reasons.append("Shortened URL detected")
 
-        
         if lk.suspiciousFlags:
             suspicious_link_count += 1
             reasons.append(f"Link flagged: {', '.join(lk.suspiciousFlags)}")
@@ -96,7 +98,6 @@ def score_email(subject: str, from_addr: str, body: str, links: List[LinkItem]) 
     elif suspicious_link_count == 1:
         score += 0.20
 
-    
     score = max(0.01, min(score, 0.99))
 
     # Risk thresholds
@@ -125,6 +126,25 @@ def score_email(subject: str, from_addr: str, body: str, links: List[LinkItem]) 
 def predict(req: PredictRequest):
     result = score_email(req.subject, req.from_, req.bodyText, req.links)
     return result
+
+
+model = joblib.load("data/phishing_model.pkl")
+
+
+@app.post("/predict-model", response_model=PredictResponse)
+def predict_model(req: PredictRequest):
+    raw_text = req.bodyText
+    
+    text, features = transform_email_text(clean_text(raw_text))
+
+    row = {
+        "clean_text": text,
+        **features
+    }
+    df = pd.DataFrame([row])
+
+    proba = model.predict_proba(df)[0][1]
+    return proba
 
 
 @app.get("/health")
