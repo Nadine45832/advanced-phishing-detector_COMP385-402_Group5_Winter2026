@@ -57,7 +57,7 @@ DEFAULT_TFIDF = dict(
 def create_model():
     return Pipeline([
         ("features", HybridFeatures(DEFAULT_TFIDF)),
-        ("clf",      LogisticRegression(
+        ("clf", LogisticRegression(
             max_iter=5000, solver="saga", class_weight="balanced"
         )),
     ])
