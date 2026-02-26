@@ -4,68 +4,108 @@
   <meta charset="UTF-8">
   <style>
     body {
-      width: 300px;
-      padding: 20px;
+      width: 320px;
+      padding: 16px;
       font-family: Arial, sans-serif;
       margin: 0;
+      color: #333;
     }
     h2 {
-      color: #4CAF50;
-      font-size: 18px;
-      margin: 0 0 15px 0;
+      font-size: 16px;
+      margin: 0 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .info {
-      margin-bottom: 15px;
-      padding: 10px;
-      background: #f5f5f5;
-      border-radius: 5px;
-      font-size: 12px;
+    h2 .icon { font-size: 20px; width: 20px; height: 20px; }
+
+    /* Risk badge */
+    .risk-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .label {
-      font-weight: bold;
+    .risk-high   { background: #ffdddd; color: #b71c1c; }
+    .risk-medium { background: #fff4cc; color: #7a5900; }
+    .risk-low    { background: #ddffdd; color: #1b5e20; }
+
+    .score {
+      font-size: 13px;
       color: #555;
+      margin: 8px 0;
     }
-    .value {
-      color: #333;
-      word-break: break-all;
+
+    .meta {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
     }
-    .status {
-      padding: 8px;
-      border-radius: 5px;
-      text-align: center;
+    .meta strong { color: #555; }
+
+    .reasons {
+      margin: 0 0 12px 16px;
+      padding: 0;
       font-size: 12px;
+      line-height: 1.6;
+    }
+    .reasons li { margin-bottom: 2px; }
+
+    .actions {
+      display: flex;
+      gap: 6px;
       margin-top: 10px;
     }
-    .active {
-      background: #d4edda;
-      color: #155724;
+    .actions button {
+      flex: 1;
+      padding: 7px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fafafa;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
     }
-    .inactive {
-      background: #fff3cd;
-      color: #856404;
+    .actions button:hover { background: #eee; }
+    .actions button.primary {
+      background: #4285f4;
+      color: #fff;
+      border-color: #4285f4;
     }
+    .actions button.primary:hover { background: #3367d6; }
+
+    .empty {
+      text-align: center;
+      padding: 24px 0;
+      color: #999;
+      font-size: 13px;
+    }
+
+    #status {
+      text-align: center;
+      font-size: 11px;
+      padding: 6px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .active   { background: #d4edda; color: #155724; }
+    .inactive { background: #fff3cd; color: #856404; }
   </style>
 </head>
 <body>
-  <h2>Advanced Phishing detector</h2>
-  
-  <div class="info">
-    <div class="label">Target Domain:</div>
-    <div class="value" id="domain">Loading...</div>
+  <h2><img class="icon" src="icon48.png" alt="Phishing Detector"> Phishing Detector</h2>
+
+  <div id="result-container">
+    <div class="empty" id="empty-state">Open an email to scan it.</div>
   </div>
-  
-  <div class="info">
-    <div class="label">Target Path:</div>
-    <div class="value" id="path">Loading...</div>
-  </div>
-  
-  <div class="info">
-    <div class="label">Content Selector:</div>
-    <div class="value" id="selector">Loading...</div>
-  </div>
-  
-  <div id="status" class="status">Extension is active</div>
-  
+
+  <div id="status" class="status"></div>
+
   <script src="popup.js"></script>
 </body>
 </html>

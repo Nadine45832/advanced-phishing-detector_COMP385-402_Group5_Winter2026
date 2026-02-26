@@ -197,11 +197,12 @@ async function runDetection() {
 
   try {
     const result = await callPredictApi(email);
+    storeResult({ ...result, subject: email.subject, from: email.from, scannedAt: new Date().toISOString() });
     showRiskBanner(result);
   } catch (err) {
     console.log("Predict API not reachable, showing demo banner.", err);
 
-    showRiskBanner({
+    const fallback = {
       phishing_probability: Math.min(0.95, 0.2 + (email.links.length * 0.18)),
       risk_level: email.links.length >= 2 ? "medium" : "low",
       reasons: [
@@ -209,9 +210,34 @@ async function runDetection() {
         "Demo mode (API offline/timeout)"
       ],
       action: "warn"
-    });
+    };
+    storeResult({ ...fallback, subject: email.subject, from: email.from, scannedAt: new Date().toISOString() });
+    showRiskBanner(fallback);
   }
 }
+
+function storeResult(result) {
+  chrome.storage.local.set({ lastScanResult: result });
+}
+
+// Allow the popup to trigger a re-scan
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.action === "rescan") {
+    lastFingerprint = ""; // force re-scan
+    runDetection().then(() => {
+      chrome.storage.local.get("lastScanResult", (data) => {
+        sendResponse(data.lastScanResult || null);
+      });
+    });
+    return true; // keep message channel open for async response
+  }
+  if (msg.action === "getResult") {
+    chrome.storage.local.get("lastScanResult", (data) => {
+      sendResponse(data.lastScanResult || null);
+    });
+    return true;
+  }
+});
 
 let debounceTimer = null;
 function scheduleRun() {

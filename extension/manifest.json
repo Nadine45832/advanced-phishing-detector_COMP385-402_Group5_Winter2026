@@ -3,7 +3,7 @@
   "name": "Advanced Phishing Detector",
   "version": "1.0",
   "description": "Detects phishing risk in Gmail emails and shows a warning banner.",
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
     "https://mail.google.com/*",
     "http://localhost:8000/*",

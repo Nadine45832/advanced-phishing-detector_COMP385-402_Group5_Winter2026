@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Any
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import re
 from urllib.parse import urlparse
@@ -8,6 +9,16 @@ from shared.clean_text import clean_text, transform_email_text
 import pandas as pd
 
 app = FastAPI(title="Phishing Detector API", version="1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://mail.google.com",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 #Schemas
@@ -128,25 +139,64 @@ def predict(req: PredictRequest):
     return result
 
 
-model = joblib.load("data/phishing_model.pkl")
+# Load model with error handling
+try:
+    model = joblib.load("data/phishing_model.pkl")
+    model_available = True
+except (FileNotFoundError, Exception) as e:
+    print(f"Warning: Could not load model: {e}")
+    model = None
+    model_available = False
 
 
 @app.post("/predict-model", response_model=PredictResponse)
 def predict_model(req: PredictRequest):
-    raw_text = req.bodyText
+    if not model_available or model is None:
+        return {
+            "phishing_probability": 0.0,
+            "risk_level": "low",
+            "reasons": ["Model not available (using fallback)"],
+            "action": "none"
+        }
     
-    text, features = transform_email_text(clean_text(raw_text))
+    try:
+        raw_text = req.bodyText
+        text, features = transform_email_text(clean_text(raw_text))
 
-    row = {
-        "clean_text": text,
-        **features
-    }
-    df = pd.DataFrame([row])
+        row = {
+            "clean_text": text,
+            **features
+        }
+        df = pd.DataFrame([row])
+        proba = model.predict_proba(df)[0][1]
 
-    proba = model.predict_proba(df)[0][1]
-    return proba
+        # Convert probability to risk level
+        if proba >= 0.80:
+            risk = "high"
+        elif proba >= 0.50:
+            risk = "medium"
+        else:
+            risk = "low"
+
+        return {
+            "phishing_probability": float(proba),
+            "risk_level": risk,
+            "reasons": [f"Model prediction: {(proba * 100):.1f}% phishing probability"],
+            "action": "warn" if risk in ("medium", "high") else "none"
+        }
+    except Exception as e:
+        print(f"Model prediction error: {e}")
+        return {
+            "phishing_probability": 0.0,
+            "risk_level": "low",
+            "reasons": [f"Prediction failed: {str(e)}"],
+            "action": "none"
+        }
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "model_available": model_available
+    }
