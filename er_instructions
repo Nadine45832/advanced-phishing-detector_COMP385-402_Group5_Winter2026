@@ -1,0 +1,48 @@
+Table users {
+  id integer [primary key]
+  username varchar
+  password_hash varchar
+  role varchar
+  created_at timestamp
+}
+
+Table reported_emails {
+  id integer [primary key]
+  title varchar
+  content varchar
+  sender varchar
+  is_safe boolean
+  is_detected boolean
+  reported_at timestamp
+  user_id integer [not null]
+}
+
+Table email_scan {
+  id integer [primary key]
+  user_id integer [not null]
+  is_phishing boolean
+  score float
+  read_at timestamp
+}
+
+Table link_click {
+  id integer [primary key]
+  user_id integer [not null]
+  link varchar
+  click_at timestamp
+}
+
+Table feedback {
+  id integer [primary key]
+  reported_email_id integer [not null]
+  content varchar
+  created_at timestamp
+}
+
+Ref user_posts: email_scan.user_id > users.id
+
+Ref user_reported_email: reported_emails.user_id > users.id
+
+Ref user_link_click: link_click.user_id > users.id
+
+Ref user_enail_feedback: feedback.reported_email_id > reported_emails.id
