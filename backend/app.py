@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import re
@@ -7,15 +7,30 @@ from urllib.parse import urlparse
 import joblib
 from shared.clean_text import clean_text, transform_email_text
 import pandas as pd
+from database import get_db, engine
+from models import Base, User
+from sqlalchemy.orm import Session
+from schemas import UserCreate, UserResponse, LoginRequest, TokenResponse
+import bcrypt
+import jwt
+from datetime import datetime, timedelta, timezone
+import os
+
+SECRET_KEY = os.getenv("SECRET_KEY", "my-secret")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Phishing Detector API", version="1.0")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://mail.google.com",
+        "*"
     ],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -158,7 +173,7 @@ def predict_model(req: PredictRequest):
             "reasons": ["Model not available (using fallback)"],
             "action": "none"
         }
-    
+
     try:
         raw_text = req.bodyText
         text, features = transform_email_text(clean_text(raw_text))
@@ -192,6 +207,58 @@ def predict_model(req: PredictRequest):
             "reasons": [f"Prediction failed: {str(e)}"],
             "action": "none"
         }
+
+
+def hash_password(password: str) -> str:
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+
+
+def create_access_token(data: dict) -> str:
+    payload = data.copy()
+    payload["exp"] = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+@app.post("/auth/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(User).filter(User.username == user_in.username).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Username exists")
+
+    user = User(
+        username=user_in.username,
+        password_hash=hash_password(user_in.password_hash),
+        role=user_in.role,
+        first_name=user_in.first_name,
+        last_name=user_in.last_name,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@app.post("/auth/login", response_model=TokenResponse)
+def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == credentials.username).first()
+    if not user or not verify_password(credentials.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+        )
+
+    token = create_access_token({"sub": str(user.id), "username": user.username, "role": user.role})
+    return TokenResponse(access_token=token, user=UserResponse.from_orm(user))
+
+
+@app.get("/users", response_model=list[UserResponse])
+def list_users(db: Session = Depends(get_db)):
+    return db.query(User).all()
 
 
 @app.get("/health")
