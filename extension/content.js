@@ -1,10 +1,7 @@
 const CONFIG = {
   targetDomain: "mail.google.com",
   bodySelectors: [".a3s.aiL", ".ii"],
-  apiUrl: "http://localhost:8000/predict",
-  feedbackUrl: "http://localhost:8000/feedback",
   debounceMs: 800,
-  fetchTimeoutMs: 4000
 };
 
 function isGmail() {
@@ -69,9 +66,9 @@ function readEmailContent() {
   const bodyText = cleanBodyText(clone.textContent || "");
   const links = extractLinksFromBody(bodyEl);
 
-  const subjectEl  = document.querySelector("h2.hP");
-  const fromNameEl = document.querySelector(".gD");
-  const fromEmailEl= document.querySelector(".gD[email], .gD span[email]");
+  const subjectEl   = document.querySelector("h2.hP");
+  const fromNameEl  = document.querySelector(".gD");
+  const fromEmailEl = document.querySelector(".gD[email], .gD span[email]");
 
   const subject = subjectEl ? subjectEl.textContent.trim() : "";
   const from =
@@ -82,66 +79,86 @@ function readEmailContent() {
   return { subject, from, bodyText, links };
 }
 
-// ── Banner ────────────────────────────────────────────────────────────────
+// ── Background messaging helpers ──────────────────────────────────────────
 
-/**
- * Posts feedback to the API using the stored auth token.
- * Returns true on success, false on failure.
- */
-async function postFeedback(result, userLabel) {
+function sendToBackground(msg) {
   return new Promise((resolve) => {
-    chrome.storage.local.get(["authToken"], async (stored) => {
-      const token = stored.authToken;
-      if (!token) {
-        console.warn("PhishGuard: no auth token, skipping feedback.");
-        resolve(false);
-        return;
-      }
-
-      const payload = {
-        email_subject:        result.subject || "",
-        email_from:           result.from    || "",
-        risk_level:           result.risk_level,
-        phishing_probability: result.phishing_probability,
-        user_label:           userLabel,
-        scanned_at:           result.scannedAt,
-      };
-
-      try {
-        const res = await fetch(CONFIG.feedbackUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (res.status === 401) {
-          // Token expired – clear it so popup forces re-login
-          chrome.storage.local.remove("authToken");
-          console.warn("PhishGuard: auth token expired.");
-          resolve(false);
-          return;
-        }
-
-        resolve(res.ok);
-      } catch (err) {
-        console.error("PhishGuard: feedback error", err);
-        resolve(false);
+    chrome.runtime.sendMessage(msg, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve({ ok: false, error: chrome.runtime.lastError.message });
+      } else {
+        resolve(response || { ok: false, error: "No response from background." });
       }
     });
   });
 }
 
-function showRiskBanner(result) {
-  const existing = document.getElementById("phish-risk-banner");
-  if (existing) existing.remove();
+async function callPredictApi(payload) {
+  const response = await sendToBackground({ action: "predict", payload });
+  if (!response.ok) throw new Error(response.error || "Predict failed");
+  return response.data;
+}
 
-  const { risk_level, phishing_probability, reasons } = result;
+async function postFeedback(result, userLabel) {
+  const payload = {
+    email_subject:        result.subject || "",
+    email_from:           result.from    || "",
+    risk_level:           result.risk_level,
+    phishing_probability: result.phishing_probability,
+    user_label:           userLabel,
+    scanned_at:           result.scannedAt,
+  };
+
+  const response = await sendToBackground({ action: "feedback", payload });
+
+  if (!response.ok && response.error === "SESSION_EXPIRED") {
+    console.warn("session expired.");
+    return "expired";
+  }
+
+  return response.ok;
+}
+
+// ── Banner ────────────────────────────────────────────────────────────────
+function showErrorBanner(message) {
+  document.getElementById("phish-risk-banner")?.remove();
 
   const banner = document.createElement("div");
   banner.id = "phish-risk-banner";
+  banner.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #fff4cc;
+    border: 2px solid #f9a825;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    z-index: 10000;
+    max-width: 440px;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  `;
+  banner.innerHTML = `
+    <div style="font-size:13px;">
+      <div style="font-weight:700;margin-bottom:4px;">Scan failed</div>
+      <div style="color:#555;">${message || "Could not reach the prediction API."}</div>
+    </div>
+    <button id="phish-close" style="background:none;border:none;font-size:20px;cursor:pointer;flex-shrink:0;">&times;</button>
+  `;
+
+  document.body.appendChild(banner);
+  document.getElementById("phish-close")?.addEventListener("click", () => banner.remove());
+  setTimeout(() => document.getElementById("phish-risk-banner")?.remove(), 8000);
+}
+
+function showRiskBanner(result) {
+  document.getElementById("phish-risk-banner")?.remove();
+
+  const { risk_level, phishing_probability, reasons } = result;
 
   const color =
     risk_level === "high"   ? "#ffdddd" :
@@ -153,6 +170,8 @@ function showRiskBanner(result) {
     risk_level === "medium" ? "#f9a825" :
     "#43a047";
 
+  const banner = document.createElement("div");
+  banner.id = "phish-risk-banner";
   banner.style.cssText = `
     position: fixed;
     top: 20px;
@@ -181,8 +200,8 @@ function showRiskBanner(result) {
         ${reasonsHtml ? `<ul style="margin:0 0 8px 18px;font-size:13px;">${reasonsHtml}</ul>` : ""}
         <div id="phish-banner-status" style="font-size:12px;min-height:16px;margin-bottom:6px;"></div>
         <div style="display:flex;gap:8px;">
-          <button id="phish-mark-safe"   style="padding:6px 10px;cursor:pointer;">Mark safe</button>
-          <button id="phish-report"      style="padding:6px 10px;cursor:pointer;">Report phishing</button>
+          <button id="phish-mark-safe" style="padding:6px 10px;cursor:pointer;">Mark safe</button>
+          <button id="phish-report"    style="padding:6px 10px;cursor:pointer;">Report phishing</button>
         </div>
       </div>
       <button id="phish-close" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
@@ -191,17 +210,14 @@ function showRiskBanner(result) {
 
   document.body.appendChild(banner);
 
-  // Helper: update status text inside banner
-  function setBannerStatus(msg, color = "#555") {
+  function setBannerStatus(msg, col = "#555") {
     const el = document.getElementById("phish-banner-status");
-    if (el) { el.textContent = msg; el.style.color = color; }
+    if (el) { el.textContent = msg; el.style.color = col; }
   }
 
   function disableBannerBtns() {
-    const safe   = document.getElementById("phish-mark-safe");
-    const report = document.getElementById("phish-report");
-    if (safe)   safe.disabled   = true;
-    if (report) report.disabled = true;
+    document.getElementById("phish-mark-safe")?.setAttribute("disabled", true);
+    document.getElementById("phish-report")?.setAttribute("disabled", true);
   }
 
   document.getElementById("phish-close")?.addEventListener("click", () => banner.remove());
@@ -210,11 +226,13 @@ function showRiskBanner(result) {
     disableBannerBtns();
     setBannerStatus("Submitting…");
     const ok = await postFeedback(result, "safe");
-    if (ok) {
+    if (ok === "expired") {
+      setBannerStatus("Session expired — open extension to re-login.", "#e53935");
+    } else if (ok) {
       setBannerStatus("✓ Marked as safe. Thank you!", "#43a047");
       setTimeout(() => banner.remove(), 1800);
     } else {
-      setBannerStatus("Could not submit — open extension to re-login.", "#e53935");
+      setBannerStatus("Could not submit — try again later.", "#e53935");
     }
   });
 
@@ -222,47 +240,22 @@ function showRiskBanner(result) {
     disableBannerBtns();
     setBannerStatus("Submitting…");
     const ok = await postFeedback(result, "phishing");
-    if (ok) {
-      setBannerStatus("⚑ Reported as phishing. Thank you!", "#e53935");
+    if (ok === "expired") {
+      setBannerStatus("Session expired — open extension to re-login.", "#e53935");
+    } else if (ok) {
+      setBannerStatus("Reported as phishing. Thank you!", "#e53935");
       setTimeout(() => banner.remove(), 1800);
     } else {
-      setBannerStatus("Could not submit — open extension to re-login.", "#e53935");
+      setBannerStatus("Could not submit — try again later.", "#e53935");
     }
   });
 
   setTimeout(() => {
-    const b = document.getElementById("phish-risk-banner");
-    if (b) b.remove();
+    document.getElementById("phish-risk-banner")?.remove();
   }, 10000);
 }
 
-// ── API call ──────────────────────────────────────────────────────────────
-async function callPredictApi(payload) {
-  // Attach token if available
-  const stored = await new Promise(res => chrome.storage.local.get(["authToken"], res));
-  const token = stored.authToken;
-
-  const headers = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), CONFIG.fetchTimeoutMs);
-
-  try {
-    const res = await fetch(CONFIG.apiUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-
-    if (!res.ok) throw new Error(`API error: ${res.status}`);
-    return await res.json();
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
+// ── Detection ─────────────────────────────────────────────────────────────
 let lastFingerprint = "";
 
 async function runDetection() {
@@ -271,8 +264,7 @@ async function runDetection() {
   const email = readEmailContent();
 
   if (!email || !email.bodyText) {
-    const existing = document.getElementById("phish-risk-banner");
-    if (existing) existing.remove();
+    document.getElementById("phish-risk-banner")?.remove();
     return;
   }
 
@@ -285,18 +277,7 @@ async function runDetection() {
     storeResult({ ...result, subject: email.subject, from: email.from, scannedAt: new Date().toISOString() });
     showRiskBanner(result);
   } catch (err) {
-    console.log("Predict API not reachable, showing demo banner.", err);
-
-    const fallback = {
-      phishing_probability: Math.min(0.95, 0.2 + (email.links.length * 0.18)),
-      risk_level: email.links.length >= 2 ? "medium" : "low",
-      reasons: [
-        email.links.length ? `Contains ${email.links.length} link(s)` : "No links detected"
-      ],
-      action: "warn"
-    };
-    storeResult({ ...fallback, subject: email.subject, from: email.from, scannedAt: new Date().toISOString() });
-    showRiskBanner(fallback);
+    showErrorBanner(err.message);
   }
 }
 
@@ -322,9 +303,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
   if (msg.action === "feedbackSubmitted") {
-    // Popup submitted feedback — remove the banner on the page
-    const banner = document.getElementById("phish-risk-banner");
-    if (banner) banner.remove();
+    document.getElementById("phish-risk-banner")?.remove();
   }
 });
 
@@ -346,8 +325,5 @@ new MutationObserver(() => scheduleRun()).observe(document, { subtree: true, chi
 let lastUrl = location.href;
 setInterval(() => {
   const url = location.href;
-  if (url !== lastUrl) {
-    lastUrl = url;
-    scheduleRun();
-  }
+  if (url !== lastUrl) { lastUrl = url; scheduleRun(); }
 }, 800);

@@ -1,32 +1,44 @@
-const API = "http://localhost:8000";
+// ── DOM refs ──────────────────────────────────────────────────────────────
+const loginView       = document.getElementById("login-view");
+const mainView        = document.getElementById("main-view");
+const userInfo        = document.getElementById("user-info");
+const userEmailEl     = document.getElementById("user-email");
+const logoutBtn       = document.getElementById("logout-btn");
 
-const loginView      = document.getElementById("login-view");
-const mainView       = document.getElementById("main-view");
-const userInfo       = document.getElementById("user-info");
-const userEmailEl    = document.getElementById("user-email");
-const logoutBtn      = document.getElementById("logout-btn");
+const usernameInput   = document.getElementById("username");
+const passwordInput   = document.getElementById("password");
+const loginBtn        = document.getElementById("login-btn");
+const loginError      = document.getElementById("login-error");
 
-const usernameInput  = document.getElementById("username");
-const passwordInput  = document.getElementById("password");
-const loginBtn       = document.getElementById("login-btn");
-const loginError     = document.getElementById("login-error");
+const emptyState      = document.getElementById("empty-state");
+const resultArea      = document.getElementById("result-area");
+const riskBadge       = document.getElementById("risk-badge");
+const riskLabel       = document.getElementById("risk-label");
+const riskScore       = document.getElementById("risk-score");
+const metaBlock       = document.getElementById("meta-block");
+const reasonsList     = document.getElementById("reasons-list");
+const feedbackSection = document.getElementById("feedback-section");
 
-const emptyState     = document.getElementById("empty-state");
-const resultArea     = document.getElementById("result-area");
-const riskBadge      = document.getElementById("risk-badge");
-const riskLabel      = document.getElementById("risk-label");
-const riskScore      = document.getElementById("risk-score");
-const metaBlock      = document.getElementById("meta-block");
-const reasonsList    = document.getElementById("reasons-list");
-const feedbackSection= document.getElementById("feedback-section");
+const fbSafe          = document.getElementById("fb-safe");
+const fbPhish         = document.getElementById("fb-phish");
+const feedbackComment = document.getElementById("feedback-comment");
+const feedbackStatus  = document.getElementById("feedback-status");
+const rescanBtn       = document.getElementById("rescan-btn");
 
-const fbSafe         = document.getElementById("fb-safe");
-const fbPhish        = document.getElementById("fb-phish");
-const feedbackComment= document.getElementById("feedback-comment");
-const feedbackStatus = document.getElementById("feedback-status");
+// ── Background messenger ──────────────────────────────────────────────────
+function sendToBackground(msg) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(msg, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve({ ok: false, error: chrome.runtime.lastError.message });
+      } else {
+        resolve(response || { ok: false, error: "No response from background." });
+      }
+    });
+  });
+}
 
-const rescanBtn      = document.getElementById("rescan-btn");
-
+// ── View helpers ──────────────────────────────────────────────────────────
 function showView(view) {
   loginView.classList.remove("active");
   mainView.classList.remove("active");
@@ -51,35 +63,23 @@ async function login() {
   loginBtn.innerHTML = '<span class="spinner"></span>';
   setLoginError("");
 
-  try {
-    const res = await fetch(`${API}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
+  // background.js handles the fetch and stores the token
+  const response = await sendToBackground({
+    action: "login",
+    payload: { username, password },
+  });
 
-    if (!res.ok) {
-      setLoginError(data?.detail || data?.message || "Invalid credentials.");
-      return;
-    }
+  loginBtn.disabled = false;
+  loginBtn.textContent = "Sign in";
 
-    const token = data.token || data.access_token;
-    if (!token) {
-      setLoginError("No token received from server.");
-      return;
-    }
-
-    await chrome.storage.local.set({ authToken: token, authUser: username });
-    initMainView(username);
-
-  } catch (err) {
-    setLoginError("Could not reach server. Check your connection.");
-    console.error("Login error:", err);
-  } finally {
-    loginBtn.disabled = false;
-    loginBtn.textContent = "Sign in";
+  if (!response.ok) {
+    setLoginError(response.error || "Login failed.");
+    return;
   }
+
+  // Store the username for display (token already saved by background)
+  await chrome.storage.local.set({ authUser: username });
+  initMainView(username);
 }
 
 function logout() {
@@ -92,7 +92,7 @@ function logout() {
   });
 }
 
-// ── Main view init ────────────────────────────────────────────────────────
+// ── Main view ─────────────────────────────────────────────────────────────
 function initMainView(username) {
   userEmailEl.textContent = username;
   userInfo.style.display = "flex";
@@ -100,7 +100,7 @@ function initMainView(username) {
   loadScanResult();
 }
 
-// ── Scan result rendering ─────────────────────────────────────────────────
+// ── Scan result ───────────────────────────────────────────────────────────
 function loadScanResult() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tab = tabs[0];
@@ -110,10 +110,7 @@ function loadScanResult() {
     }
 
     chrome.tabs.sendMessage(tab.id, { action: "getResult" }, (result) => {
-      if (chrome.runtime.lastError || !result) {
-        showEmpty();
-        return;
-      }
+      if (chrome.runtime.lastError || !result) { showEmpty(); return; }
       renderResult(result);
     });
   });
@@ -136,48 +133,41 @@ function renderResult(result) {
   const level = (result.risk_level || "low").toLowerCase();
   const prob  = result.phishing_probability || 0;
 
-  // Badge
   riskBadge.className = `risk-badge ${level}`;
   riskLabel.textContent = level.toUpperCase();
   riskScore.textContent = `${(prob * 100).toFixed(1)}%`;
 
-  // Meta
   metaBlock.innerHTML = "";
-  if (result.subject || result.from) {
-    if (result.from) {
-      metaBlock.innerHTML += `
-        <div class="meta-row">
-          <span class="meta-key">From</span>
-          <span class="meta-val" title="${result.from}">${result.from}</span>
-        </div>`;
-    }
-    if (result.subject) {
-      metaBlock.innerHTML += `
-        <div class="meta-row">
-          <span class="meta-key">Subject</span>
-          <span class="meta-val" title="${result.subject}">${result.subject}</span>
-        </div>`;
-    }
-    if (result.scannedAt) {
-      const t = new Date(result.scannedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      metaBlock.innerHTML += `
-        <div class="meta-row">
-          <span class="meta-key">Scanned</span>
-          <span class="meta-val">${t}</span>
-        </div>`;
-    }
+  if (result.from) {
+    metaBlock.innerHTML += `
+      <div class="meta-row">
+        <span class="meta-key">From</span>
+        <span class="meta-val" title="${result.from}">${result.from}</span>
+      </div>`;
+  }
+  if (result.subject) {
+    metaBlock.innerHTML += `
+      <div class="meta-row">
+        <span class="meta-key">Subject</span>
+        <span class="meta-val" title="${result.subject}">${result.subject}</span>
+      </div>`;
+  }
+  if (result.scannedAt) {
+    const t = new Date(result.scannedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    metaBlock.innerHTML += `
+      <div class="meta-row">
+        <span class="meta-key">Scanned</span>
+        <span class="meta-val">${t}</span>
+      </div>`;
   }
 
-  // Reasons
   reasonsList.innerHTML = "";
-  const reasons = result.reasons || [];
-  reasons.slice(0, 6).forEach(r => {
+  (result.reasons || []).slice(0, 6).forEach(r => {
     const li = document.createElement("li");
     li.textContent = r;
     reasonsList.appendChild(li);
   });
 
-  // Store result reference for feedback
   window._currentResult = result;
 }
 
@@ -191,12 +181,9 @@ async function submitFeedback(userLabel) {
   const result = window._currentResult;
   if (!result) return;
 
-  const comment = feedbackComment.value.trim();
-
-  // Get token
-  const stored = await new Promise(res => chrome.storage.local.get(["authToken", "authUser"], res));
-  const token = stored.authToken;
-  if (!token) {
+  // Guard: check token exists before attempting
+  const stored = await new Promise(res => chrome.storage.local.get(["authToken"], res));
+  if (!stored.authToken) {
     feedbackStatus.textContent = "Not authenticated. Please log in again.";
     feedbackStatus.className = "error";
     logout();
@@ -208,56 +195,43 @@ async function submitFeedback(userLabel) {
   feedbackStatus.textContent = "";
 
   const payload = {
-    email_subject: result.subject || "",
-    email_from:    result.from    || "",
-    risk_level:    result.risk_level,
+    email_subject:        result.subject || "",
+    email_from:           result.from    || "",
+    risk_level:           result.risk_level,
     phishing_probability: result.phishing_probability,
-    user_label:    userLabel,   // "safe" | "phishing"
-    comment:       comment || undefined,
-    scanned_at:    result.scannedAt,
+    user_label:           userLabel,
+    comment:              feedbackComment.value.trim() || undefined,
+    scanned_at:           result.scannedAt,
   };
 
-  try {
-    const res = await fetch(`${API}/feedback`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+  // background.js handles the fetch with the stored token
+  const response = await sendToBackground({ action: "feedback", payload });
 
-    if (res.status === 401) {
+  if (!response.ok) {
+    if (response.error === "SESSION_EXPIRED") {
       feedbackStatus.textContent = "Session expired. Please log in again.";
       feedbackStatus.className = "error";
       logout();
       return;
     }
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err?.detail || `Server error ${res.status}`);
-    }
-
-    feedbackStatus.textContent = userLabel === "safe"
-      ? "Marked as safe — thank you!"
-      : "Reported as phishing — thank you!";
-    feedbackStatus.className = "";
-    feedbackComment.value = "";
-
-    // Also notify content script so it can remove the banner
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "feedbackSubmitted", label: userLabel });
-      }
-    });
-
-  } catch (err) {
-    feedbackStatus.textContent = `Error: ${err.message}`;
+    feedbackStatus.textContent = `Error: ${response.error}`;
     feedbackStatus.className = "error";
     enableFeedbackBtns();
-    console.error("Feedback error:", err);
+    return;
   }
+
+  feedbackStatus.textContent = userLabel === "safe"
+    ? "Marked as safe — thank you!"
+    : "Reported as phishing — thank you!";
+  feedbackStatus.className = "";
+  feedbackComment.value = "";
+
+  // Tell the content script to dismiss the banner
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(tabs[0].id, { action: "feedbackSubmitted", label: userLabel });
+    }
+  });
 }
 
 // ── Re-scan ───────────────────────────────────────────────────────────────
@@ -284,13 +258,8 @@ fbSafe.addEventListener("click",  () => submitFeedback("safe"));
 fbPhish.addEventListener("click", () => submitFeedback("phishing"));
 rescanBtn.addEventListener("click", rescan);
 
-// Allow pressing Enter in login form
-passwordInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") login();
-});
-usernameInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") passwordInput.focus();
-});
+passwordInput.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+usernameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") passwordInput.focus(); });
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 chrome.storage.local.get(["authToken", "authUser"], (stored) => {
