@@ -242,3 +242,181 @@ body {
   .td-muted { color: #71717a; }
  
   .loading { padding: 40px 24px; text-align: center; color: #71717a; font-size: 0.875rem; }
+
+  .link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 0.15s;
+  }
+  .link-btn:hover {
+    text-decoration-color: currentColor;
+  }
+ 
+  .badge-safe {
+    background: rgba(67, 160, 71, 0.12);
+    color: #43a047;
+    border: 1px solid rgba(67, 160, 71, 0.3);
+  }
+  .badge-phish {
+    background: rgba(229, 57, 53, 0.1);
+    color: #e53935;
+    border: 1px solid rgba(229, 57, 53, 0.25);
+  }
+ 
+  .td-truncate {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+ 
+  /* Dialog */
+  .dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.15s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+ 
+  .dialog {
+    background: #fff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: slideUp 0.18s ease;
+    overflow: hidden;
+  }
+  @keyframes slideUp { from { transform: translateY(12px); opacity: 0 } to { transform: none; opacity: 1 } }
+ 
+  .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 20px 0;
+  }
+  .dialog-title {
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .dialog-sub {
+    font-size: 12px;
+    color: #888;
+    margin-top: 2px;
+    max-width: 340px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dialog-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    color: #aaa;
+    padding: 0 2px;
+  }
+  .dialog-close:hover { color: #333; }
+ 
+  .dialog-body {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+ 
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 5px;
+  }
+  .field-static {
+    font-size: 13px;
+    color: #555;
+  }
+  .field textarea {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid #e0e0e0;
+    border-radius: 7px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+  }
+  .field textarea:focus { border-color: #555; }
+ 
+  .toggle-row {
+    display: flex;
+    gap: 8px;
+  }
+  .toggle-btn {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 7px;
+    background: #fafafa;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .toggle-btn.active-safe  { background: rgba(67,160,71,0.1);  border-color: #43a047; color: #43a047; font-weight: 600; }
+  .toggle-btn.active-phish { background: rgba(229,57,53,0.08); border-color: #e53935; color: #e53935; font-weight: 600; }
+ 
+  .dialog-error {
+    font-size: 12px;
+    color: #e53935;
+    background: rgba(229,57,53,0.06);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+ 
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid #f0f0f0;
+  }
+  .btn-ghost {
+    padding: 8px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 7px;
+    background: none;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .btn-ghost:hover { border-color: #aaa; }
+  .btn-save {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 7px;
+    background: #111;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-save:hover { opacity: 0.85; }
+  .btn-save:disabled, .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
