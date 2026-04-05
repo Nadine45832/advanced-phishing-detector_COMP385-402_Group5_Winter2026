@@ -30,13 +30,12 @@ app.add_middleware(
     allow_origins=[
         "*"
     ],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=True,
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
-#Schemas
 class LinkItem(BaseModel):
     href: str = ""
     text: str = ""
@@ -134,7 +133,6 @@ def score_email(subject: str, from_addr: str, body: str, links: List[LinkItem]) 
     else:
         risk = "low"
 
-    #reason
     deduped = []
     for r in reasons:
         if r not in deduped:

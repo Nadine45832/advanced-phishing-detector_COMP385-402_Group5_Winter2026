@@ -1,110 +1,427 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced phishing detector</title>
   <style>
-    body {
-      width: 320px;
-      padding: 16px;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      color: #333;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f12;
+      --surface: #161a20;
+      --surface2: #1e242c;
+      --border: #2a3140;
+      --accent: #00e5a0;
+      --warn: #f5a623;
+      --danger: #ff4d4d;
+      --safe: #00e5a0;
+      --text: #e8ecf0;
+      --muted: #6b7685;
+      --mono: monospace;
+      --sans: sans-serif;
     }
-    h2 {
-      font-size: 16px;
-      margin: 0 0 12px 0;
+
+    body {
+      width: 360px;
+      min-height: 200px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    .header {
       display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
     }
-    h2 .icon { font-size: 20px; width: 20px; height: 20px; }
-
-    /* Risk badge */
-    .risk-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-weight: 700;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-weight: 600;
       font-size: 13px;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+    }
+    .logo svg { flex-shrink: 0; }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #user-email {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #logout-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 10px;
+      font-family: var(--mono);
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    #logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── VIEWS ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── LOGIN VIEW ── */
+    #login-view {
+      padding: 28px 24px 24px;
+    }
+    .login-title {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .login-sub {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 24px;
+    }
+    .field {
+      margin-bottom: 14px;
+    }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--muted);
+      margin-bottom: 5px;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
-    .risk-high   { background: #ffdddd; color: #b71c1c; }
-    .risk-medium { background: #fff4cc; color: #7a5900; }
-    .risk-low    { background: #ddffdd; color: #1b5e20; }
-
-    .score {
+    .field input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: var(--mono);
       font-size: 13px;
-      color: #555;
-      margin: 8px 0;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .field input::placeholder { color: var(--muted); }
+
+    #login-error {
+      font-size: 12px;
+      color: var(--danger);
+      margin-bottom: 12px;
+      min-height: 16px;
+      font-family: var(--mono);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: #000;
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 13px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── MAIN VIEW ── */
+    #main-view { padding: 0; }
+
+    .scan-area { padding: 16px; }
+
+    .risk-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      margin-bottom: 14px;
+    }
+    .risk-badge.high   { border-color: var(--danger); background: rgba(255,77,77,0.08); }
+    .risk-badge.medium { border-color: var(--warn);   background: rgba(245,166,35,0.08); }
+    .risk-badge.low    { border-color: var(--safe);   background: rgba(0,229,160,0.08); }
+
+    .risk-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .high .risk-dot   { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+    .medium .risk-dot { background: var(--warn);   box-shadow: 0 0 6px var(--warn); }
+    .low .risk-dot    { background: var(--safe);   box-shadow: 0 0 6px var(--safe); }
+
+    .risk-label {
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .high   .risk-label { color: var(--danger); }
+    .medium .risk-label { color: var(--warn); }
+    .low    .risk-label { color: var(--safe); }
+
+    .risk-score {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .reasons-list {
+      list-style: none;
+      margin-bottom: 14px;
+    }
+    .reasons-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .reasons-list li:last-child { border-bottom: none; }
+    .reasons-list li::before {
+      content: '›';
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 1px;
     }
 
     .meta {
-      font-size: 11px;
-      color: #888;
-      margin-bottom: 10px;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      background: var(--surface2);
+      border-radius: 6px;
+      border: 1px solid var(--border);
     }
-    .meta strong { color: #555; }
-
-    .reasons {
-      margin: 0 0 12px 16px;
-      padding: 0;
-      font-size: 12px;
-      line-height: 1.6;
-    }
-    .reasons li { margin-bottom: 2px; }
-
-    .actions {
+    .meta-row {
       display: flex;
       gap: 6px;
-      margin-top: 10px;
-    }
-    .actions button {
-      flex: 1;
-      padding: 7px 0;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: #fafafa;
-      font-size: 12px;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .actions button:hover { background: #eee; }
-    .actions button.primary {
-      background: #4285f4;
-      color: #fff;
-      border-color: #4285f4;
-    }
-    .actions button.primary:hover { background: #3367d6; }
-
-    .empty {
-      text-align: center;
-      padding: 24px 0;
-      color: #999;
-      font-size: 13px;
-    }
-
-    #status {
-      text-align: center;
       font-size: 11px;
-      padding: 6px;
-      border-radius: 5px;
-      margin-top: 10px;
     }
-    .active   { background: #d4edda; color: #155724; }
-    .inactive { background: #fff3cd; color: #856404; }
+    .meta-key {
+      font-family: var(--mono);
+      color: var(--muted);
+      min-width: 48px;
+    }
+    .meta-val {
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── FEEDBACK ── */
+    .feedback-section {
+      border-top: 1px solid var(--border);
+      padding: 14px 16px;
+    }
+    .feedback-label {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .feedback-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .fb-btn {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .fb-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .fb-btn.safe:hover   { border-color: var(--safe);   color: var(--safe); }
+    .fb-btn.phish:hover  { border-color: var(--danger); color: var(--danger); }
+    .fb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .comment-row {
+      display: flex;
+      gap: 6px;
+    }
+    #feedback-comment {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 12px;
+      outline: none;
+      resize: none;
+      height: 34px;
+      transition: border-color 0.15s;
+    }
+    #feedback-comment:focus { border-color: var(--accent); }
+    #feedback-comment::placeholder { color: var(--muted); }
+
+    #feedback-status {
+      font-size: 11px;
+      font-family: var(--mono);
+      min-height: 16px;
+      margin-top: 8px;
+      color: var(--accent);
+    }
+    #feedback-status.error { color: var(--danger); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .empty-state svg { margin-bottom: 12px; opacity: 0.4; }
+    .empty-state p { font-size: 12px; line-height: 1.6; }
+
+    /* ── ACTION BAR ── */
+    .action-bar {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .btn-secondary {
+      flex: 1;
+      padding: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    .spinner {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid rgba(0,229,160,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <h2><img class="icon" src="icon48.png" alt="Phishing Detector"> Phishing Detector</h2>
 
-  <div id="result-container">
-    <div class="empty" id="empty-state">Open an email to scan it.</div>
+  <div class="header">
+    <div class="logo">
+      Advenced Phishing Detector
+    </div>
+    <div class="user-info" id="user-info" style="display:none;">
+      <span id="user-email"></span>
+      <button id="logout-btn">logout</button>
+    </div>
   </div>
 
-  <div id="status" class="status"></div>
+  <!-- LOGIN VIEW -->
+  <div id="login-view" class="view active">
+    <p class="login-title">Sign in</p>
+    <p class="login-sub">Authenticate to enable phishing detection</p>
+
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" placeholder="you@example.com" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+
+    <div id="login-error"></div>
+    <button class="btn-primary" id="login-btn">Sign in</button>
+  </div>
+
+  <!-- MAIN VIEW -->
+  <div id="main-view" class="view">
+    <div class="scan-area" id="scan-area">
+      <div class="empty-state" id="empty-state">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="14" stroke="#6b7685" stroke-width="1.5"/>
+          <path d="M16 10v7M16 20v2" stroke="#6b7685" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p>Open an email in Gmail<br>to see its phishing analysis.</p>
+      </div>
+      <div id="result-area" style="display:none;">
+        <div class="risk-badge" id="risk-badge">
+          <div class="risk-dot"></div>
+          <span class="risk-label" id="risk-label">—</span>
+          <span class="risk-score" id="risk-score"></span>
+        </div>
+        <div class="meta" id="meta-block"></div>
+        <ul class="reasons-list" id="reasons-list"></ul>
+      </div>
+    </div>
+
+    <!-- FEEDBACK -->
+    <div class="feedback-section" id="feedback-section" style="display:none;">
+      <div class="feedback-label">Submit feedback</div>
+      <div class="feedback-btns">
+        <button class="fb-btn safe" id="fb-safe">Mark Safe</button>
+        <button class="fb-btn phish" id="fb-phish">Report Phishing</button>
+      </div>
+      <div class="comment-row">
+        <textarea id="feedback-comment" placeholder="Comment…"></textarea>
+      </div>
+      <div id="feedback-status"></div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn-secondary" id="rescan-btn">Re-scan</button>
+    </div>
+  </div>
 
   <script src="popup.js"></script>
 </body>
