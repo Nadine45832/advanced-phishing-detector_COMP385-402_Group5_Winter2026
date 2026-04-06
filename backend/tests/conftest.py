@@ -1,5 +1,3 @@
-
-import os
 import sys
 from pathlib import Path
 
@@ -8,27 +6,30 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
+
 TEST_DATABASE_URL = "sqlite:///./test.db"
 
-import database 
+import database
+
 
 database.engine = create_engine(
     TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False},
 )
 database.SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
-    bind=database.engine
+    bind=database.engine,
 )
 
-from database import get_db, SessionLocal  
-from models import Base, User, ReportedEmail, Feedback, UserRole  
-from app import app  
-from auth import hash_password, create_access_token  
+from database import get_db, SessionLocal
+from models import Base, User, ReportedEmail, Feedback, UserRole
+from app import app
+from auth import hash_password, create_access_token
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -57,10 +58,7 @@ def db_session():
 @pytest.fixture
 def client(db_session):
     def override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
@@ -69,10 +67,11 @@ def client(db_session):
 
     app.dependency_overrides.clear()
 
+
 @pytest.fixture
 def normal_user(db_session):
     user = User(
-        username="testuser",   
+        username="testuser",
         password_hash=hash_password("password123"),
         role=UserRole.viewer,
         first_name="Test",
@@ -102,7 +101,11 @@ def admin_user(db_session):
 @pytest.fixture
 def normal_auth_headers(normal_user):
     token = create_access_token(
-        {"sub": str(normal_user.id), "username": normal_user.username, "role": str(normal_user.role.value)}
+        {
+            "sub": str(normal_user.id),
+            "username": normal_user.username,
+            "role": normal_user.role.value,
+        }
     )
     return {"Authorization": f"Bearer {token}"}
 
@@ -110,7 +113,11 @@ def normal_auth_headers(normal_user):
 @pytest.fixture
 def admin_auth_headers(admin_user):
     token = create_access_token(
-        {"sub": str(admin_user.id), "username": admin_user.username, "role": str(admin_user.role.value)}
+        {
+            "sub": str(admin_user.id),
+            "username": admin_user.username,
+            "role": admin_user.role.value,
+        }
     )
     return {"Authorization": f"Bearer {token}"}
 
