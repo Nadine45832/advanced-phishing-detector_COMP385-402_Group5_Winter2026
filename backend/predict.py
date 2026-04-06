@@ -92,6 +92,7 @@ def predict_model(
                 title=req.subject,
                 sender=req.from_,
                 user_id=current_user.id,
+                proba=float(proba),
                 is_detected=risk in ("high", "medium"),
                 is_safe=risk == "low",
             )

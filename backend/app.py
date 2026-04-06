@@ -6,6 +6,7 @@ from feedback import router as feedback_router
 from users import router as users_router
 from predict import router as predict_router
 from login import router as login_router
+from statistics import router as stats_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -25,6 +26,7 @@ app.include_router(feedback_router)
 app.include_router(users_router)
 app.include_router(predict_router)
 app.include_router(login_router)
+app.include_router(stats_router)
 
 
 @app.get("/health")

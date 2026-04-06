@@ -5,6 +5,7 @@ import { CreateUser } from './components/CreateUser';
 import { Users } from './components/Users';
 import { Header } from './components/Header';
 import { Feedbacks } from './components/Feedbacks';
+import { Stats } from './components/Stats';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -18,6 +19,7 @@ export default function App() {
           {page === "users"  && <Users token={session.access_token} />}
           {page === "create" && <CreateUser token={session.access_token} />}
           {page === "feedback" && <Feedbacks token={session.access_token} />}
+          {page === "stats" && <Stats token={session.access_token} />}
         </>
       ) : (
         <Login onLogin={setSession} />

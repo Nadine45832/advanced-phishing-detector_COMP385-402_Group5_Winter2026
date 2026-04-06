@@ -10,6 +10,9 @@ export function Header({ currentUser, page, onNav, onLogout }) {
           <button className={`nav-link ${page === "feedback" ? "active" : ""}`} onClick={() => onNav("feedback")}>
             Feedbacks
           </button>
+          <button className={`nav-link ${page === "create" ? "active" : ""}`} onClick={() => onNav("stats")}>
+            Statistics
+          </button>
           <button className={`nav-link ${page === "create" ? "active" : ""}`} onClick={() => onNav("create")}>
             Create User
           </button>

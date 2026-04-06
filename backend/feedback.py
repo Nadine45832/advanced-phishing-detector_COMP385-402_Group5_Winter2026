@@ -41,6 +41,7 @@ def submit_feedback(
             title=body.email_subject,
             sender=body.email_from,
             user_id=current_user.id,
+            proba=body.phishing_probability,
             is_detected=body.risk_level in ("high", "medium"),
             is_safe=body.user_label == "safe",
         )
@@ -70,6 +71,8 @@ def submit_feedback(
                 content=body.comment,
             )
             db.add(feedback)
+        elif body.comment:
+            feedback.content = body.comment
 
     db.commit()
     db.refresh(feedback)

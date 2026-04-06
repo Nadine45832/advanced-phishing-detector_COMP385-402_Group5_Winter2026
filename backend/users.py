@@ -15,7 +15,7 @@ def list_users(db: Session = Depends(get_db)):
     return db.query(User).all()
 
 
-@router.post("/auth/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.username == user_in.username).first()
     if existing:

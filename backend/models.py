@@ -41,6 +41,7 @@ class ReportedEmail(Base):
     sender = Column(String, nullable=True)
     is_safe = Column(Boolean, default=False)
     is_detected = Column(Boolean, default=False)
+    proba = Column(Float, default=0)
     reported_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
