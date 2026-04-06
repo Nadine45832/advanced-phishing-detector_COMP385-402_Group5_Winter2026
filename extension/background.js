@@ -58,7 +58,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
   // ── Predict ────────────────────────────────────────────────────────────
   if (msg.action === "predict") {
-    apiFetch("/predict", { body: msg.payload, useToken: true })
+    apiFetch("/predict-model", { body: msg.payload, useToken: true })
       .then(({ ok, status, data, error }) => {
         if (error)  return sendResponse({ ok: false, error });
         if (!ok)    return sendResponse({ ok: false, error: `API error ${status}` });

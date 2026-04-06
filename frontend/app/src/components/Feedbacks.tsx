@@ -24,7 +24,7 @@ export function Feedbacks({ token }) {
   return (
     <> 
       <div className="page-content">
-        <div className="users-card">
+        <div className="users-card users-card--extended">
           <div className="users-card-header">
             <h2>Feedback</h2>
             {!loading && (

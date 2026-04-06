@@ -45,16 +45,32 @@ def submit_feedback(
             is_safe=body.user_label == "safe",
         )
         db.add(reported_email)
-        db.flush()  # get the id without committing yet
+        db.flush()
+
+        feedback = Feedback(
+            reported_email_id=reported_email.id,
+            content=body.comment,
+        )
+        db.add(feedback)
     else:
         reported_email.is_safe = body.user_label == "safe"
         reported_email.is_detected = body.risk_level in ("high", "medium")
 
-    feedback = Feedback(
-        reported_email_id=reported_email.id,
-        content=body.comment,
-    )
-    db.add(feedback)
+        feedback = (
+            db.query(Feedback)
+            .filter(
+                Feedback.reported_email_id == reported_email.id
+            )
+            .first()
+        )
+
+        if not feedback:
+            feedback = Feedback(
+                reported_email_id=reported_email.id,
+                content=body.comment,
+            )
+            db.add(feedback)
+
     db.commit()
     db.refresh(feedback)
 
