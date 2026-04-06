@@ -8,14 +8,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Make backend importable
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
-# Use SQLite for tests before importing app/database modules
 TEST_DATABASE_URL = "sqlite:///./test.db"
 
-import database  # noqa: E402
+import database 
 
 database.engine = create_engine(
     TEST_DATABASE_URL,
@@ -27,10 +25,10 @@ database.SessionLocal = sessionmaker(
     bind=database.engine
 )
 
-from database import get_db, SessionLocal  # noqa: E402
-from models import Base, User, ReportedEmail, Feedback, UserRole  # noqa: E402
-from app import app  # noqa: E402
-from auth import hash_password, create_access_token  # noqa: E402
+from database import get_db, SessionLocal  
+from models import Base, User, ReportedEmail, Feedback, UserRole  
+from app import app  
+from auth import hash_password, create_access_token  
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -71,15 +69,14 @@ def client(db_session):
 
     app.dependency_overrides.clear()
 
-
 @pytest.fixture
 def normal_user(db_session):
     user = User(
-        username="sunny",
+        username="testuser",   
         password_hash=hash_password("password123"),
         role=UserRole.viewer,
-        first_name="Sunny",
-        last_name="Ham",
+        first_name="Test",
+        last_name="User",
     )
     db_session.add(user)
     db_session.commit()
