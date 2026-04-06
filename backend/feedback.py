@@ -15,7 +15,7 @@ class FeedbackRequest(BaseModel):
     email_from: Optional[str] = None
     risk_level: Optional[str] = None
     phishing_probability: Optional[float] = None
-    user_label: str  # "safe" | "phishing"
+    user_label: str
     comment: Optional[str] = None
     scanned_at: Optional[str] = None
 

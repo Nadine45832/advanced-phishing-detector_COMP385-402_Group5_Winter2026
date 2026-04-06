@@ -79,8 +79,6 @@ function readEmailContent() {
   return { subject, from, bodyText, links };
 }
 
-// ── Background messaging helpers ──────────────────────────────────────────
-
 function sendToBackground(msg) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(msg, (response) => {
@@ -101,12 +99,12 @@ async function callPredictApi(payload) {
 
 async function postFeedback(result, userLabel) {
   const payload = {
-    email_subject:        result.subject || "",
-    email_from:           result.from    || "",
-    risk_level:           result.risk_level,
+    email_subject: result.subject || "",
+    email_from: result.from || "",
+    risk_level: result.risk_level,
     phishing_probability: result.phishing_probability,
-    user_label:           userLabel,
-    scanned_at:           result.scannedAt,
+    user_label: userLabel,
+    scanned_at: result.scannedAt,
   };
 
   const response = await sendToBackground({ action: "feedback", payload });
@@ -119,7 +117,6 @@ async function postFeedback(result, userLabel) {
   return response.ok;
 }
 
-// ── Banner ────────────────────────────────────────────────────────────────
 function showErrorBanner(message) {
   document.getElementById("phish-risk-banner")?.remove();
 
@@ -201,7 +198,7 @@ function showRiskBanner(result) {
         <div id="phish-banner-status" style="font-size:12px;min-height:16px;margin-bottom:6px;"></div>
         <div style="display:flex;gap:8px;">
           <button id="phish-mark-safe" style="padding:6px 10px;cursor:pointer;">Mark safe</button>
-          <button id="phish-report"    style="padding:6px 10px;cursor:pointer;">Report phishing</button>
+          <button id="phish-report" style="padding:6px 10px;cursor:pointer;">Report phishing</button>
         </div>
       </div>
       <button id="phish-close" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
@@ -275,7 +272,7 @@ async function runDetection() {
   try {
     const result = await callPredictApi(email);
     storeResult({ ...result, subject: email.subject, from: email.from, scannedAt: new Date().toISOString() });
-    showRiskBanner(result);
+    showRiskBanner({ ...result, subject: email.subject, from: email.from, scannedAt: new Date().toISOString() });
   } catch (err) {
     showErrorBanner(err.message);
   }

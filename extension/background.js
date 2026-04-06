@@ -1,6 +1,5 @@
 const API = "http://localhost:8000";
 
-// ── Central fetch helper ──────────────────────────────────────────────────
 async function apiFetch(endpoint, { method = "POST", body, useToken = false, timeout = 4000 } = {}) {
   const stored = await chrome.storage.local.get(["authToken"]);
   const token = stored.authToken;
@@ -28,10 +27,8 @@ async function apiFetch(endpoint, { method = "POST", body, useToken = false, tim
   }
 }
 
-// ── Message handler ───────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
-  // ── Login ──────────────────────────────────────────────────────────────
   if (msg.action === "login") {
     apiFetch("/auth/login", { body: msg.payload })
       .then(({ ok, status, data, error }) => {
@@ -53,10 +50,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       })
       .catch(err => sendResponse({ ok: false, error: err.message }));
 
-    return true; // async
+    return true; 
   }
 
-  // ── Predict ────────────────────────────────────────────────────────────
+
   if (msg.action === "predict") {
     apiFetch("/predict-model", { body: msg.payload, useToken: true })
       .then(({ ok, status, data, error }) => {
@@ -69,11 +66,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
-  // ── Feedback ───────────────────────────────────────────────────────────
+
   if (msg.action === "feedback") {
     apiFetch("/feedback", { body: msg.payload, useToken: true })
       .then(({ ok, status, data, error }) => {
-        if (error)       return sendResponse({ ok: false, error });
+        if (error) return sendResponse({ ok: false, error });
         if (status === 401) {
           chrome.storage.local.remove("authToken");
           return sendResponse({ ok: false, error: "SESSION_EXPIRED" });
