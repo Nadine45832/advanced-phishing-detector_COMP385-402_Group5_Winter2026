@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -127,3 +127,16 @@ def get_feedbacks(
         )
         for f in feedbacks
     ]
+
+
+@router.delete("/{feedback_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_feedback(
+    feedback_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    db.delete(feedback)
+    db.commit()

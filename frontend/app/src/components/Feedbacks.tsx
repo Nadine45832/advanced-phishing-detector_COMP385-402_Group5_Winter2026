@@ -4,9 +4,9 @@ import { FeedbackDialog } from "./Feedback";
 
 export function Feedbacks({ token }) {
   const [feedbacks, setFeedbacks] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState("");
-  const [selected, setSelected]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selected, setSelected] = useState(null);
  
   useEffect(() => {
     fetch(`${API}/feedback`, {
@@ -20,6 +20,17 @@ export function Feedbacks({ token }) {
       .catch(() => { setError("Failed to load feedback."); setLoading(false); });
   }, [token]);
 
+  async function handleRowDelete(e, id) {
+    e.stopPropagation();
+
+    const res = await fetch(`${API}/feedback/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error();
+
+    setFeedbacks(fs => fs.filter(f => f.id !== id));
+  }
  
   return (
     <> 
@@ -47,6 +58,7 @@ export function Feedbacks({ token }) {
                   <th>Verdict</th>
                   <th>Comment</th>
                   <th>Date</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -77,6 +89,15 @@ export function Feedbacks({ token }) {
                             month: "short", day: "numeric", year: "numeric",
                           })
                         : "—"}
+                    </td>
+                    <td>
+                      <button
+                        className="row-delete-btn"
+                        onClick={(e) => handleRowDelete(e, f.id)}
+                        title={"Delete"}
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}

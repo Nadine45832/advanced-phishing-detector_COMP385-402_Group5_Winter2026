@@ -17,7 +17,7 @@ app.add_middleware(
         "*"
     ],
     allow_credentials=True,
-    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_methods=["POST", "GET", "OPTIONS", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
