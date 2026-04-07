@@ -45,3 +45,37 @@ def create_user(
     db.commit()
     db.refresh(user)
     return user
+
+
+# --- NEW DELETE ENDPOINT ---
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # 1. Security Check: Only admins can delete
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Only admins can delete users"
+        )
+
+    # 2. Safety Check: Prevent admins from deleting themselves
+    if current_user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="You cannot delete your own account"
+        )
+
+    # 3. Find the user in the database
+    user_to_delete = db.query(User).filter(User.id == user_id).first()
+    if not user_to_delete:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="User not found"
+        )
+
+    # 4. Delete the user (Cascade handles the reported emails/feedback)
+    db.delete(user_to_delete)
+    db.commit()
