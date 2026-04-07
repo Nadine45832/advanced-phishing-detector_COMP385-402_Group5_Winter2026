@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Login } from "./components/Login"
 import './App.css'
 import { CreateUser } from './components/CreateUser';
@@ -7,22 +7,60 @@ import { Header } from './components/Header';
 import { Feedbacks } from './components/Feedbacks';
 import { Stats } from './components/Stats';
 
+const EXP = 60 * 60 * 1000;
+
 export default function App() {
+  const [authenticating, setAuthenticating] = useState(true);
   const [session, setSession] = useState(null);
   const [page, setPage] = useState("users");
+
+  useEffect(() => {
+    if (session) {
+      return;
+    }
+
+    let token;
+    
+    try {
+      token = JSON.parse(localStorage.getItem("_token"));
+    } catch (e) {}
+
+    if (token && Date.now() - token.time < EXP) {
+      setSession(token.token);
+      setAuthenticating(false);
+      return;
+    }
+
+    setAuthenticating(false);
+  }, [session]);
+
+  const setLogin = (token) => {
+      setSession(token);
+      localStorage.setItem("_token", JSON.stringify({ token, time: Date.now() }));
+  };
+
+  const onLogout = () => {
+    localStorage.removeItem("_token");
+    setSession(null);
+  }
+
+
+  if (authenticating) {
+    return null;
+  }
 
   return (
     <>
       {session ? (
         <>
-          <Header currentUser={session.user} page={page} onNav={setPage} onLogout={() => setSession(null)} />
+          <Header currentUser={session.user} page={page} onNav={setPage} onLogout={onLogout} />
           {page === "users"  && <Users token={session.access_token} />}
           {page === "create" && <CreateUser token={session.access_token} />}
           {page === "feedback" && <Feedbacks token={session.access_token} />}
           {page === "stats" && <Stats token={session.access_token} />}
         </>
       ) : (
-        <Login onLogin={setSession} />
+        <Login onLogin={setLogin} />
       )}
     </>
   );
