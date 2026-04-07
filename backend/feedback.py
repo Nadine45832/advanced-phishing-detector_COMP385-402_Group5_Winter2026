@@ -55,7 +55,6 @@ def submit_feedback(
         db.add(feedback)
     else:
         reported_email.is_safe = body.user_label == "safe"
-        reported_email.is_detected = body.risk_level in ("high", "medium")
 
         feedback = (
             db.query(Feedback)

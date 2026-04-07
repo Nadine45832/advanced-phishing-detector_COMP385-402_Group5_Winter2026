@@ -26,7 +26,7 @@ def test_predict_model_high_risk(client, normal_auth_headers, monkeypatch):
     monkeypatch.setattr(predict, "model", DummyModelHigh())
 
     payload = {
-        "subject": "Urgent account issue",
+        "subject": "Urgent account issue 1",
         "from": "scam@example.com",
         "bodyText": "Click here to verify your account immediately",
         "links": []
@@ -46,7 +46,7 @@ def test_predict_model_medium_risk(client, normal_auth_headers, monkeypatch):
     monkeypatch.setattr(predict, "model", DummyModelMedium())
 
     payload = {
-        "subject": "Please review",
+        "subject": "Please review 2",
         "from": "maybe@example.com",
         "bodyText": "There is a link in this email",
         "links": []
@@ -65,7 +65,7 @@ def test_predict_model_low_risk(client, normal_auth_headers, monkeypatch):
     monkeypatch.setattr(predict, "model", DummyModelLow())
 
     payload = {
-        "subject": "Hello",
+        "subject": "Hello 3",
         "from": "friend@example.com",
         "bodyText": "Just checking in",
         "links": []

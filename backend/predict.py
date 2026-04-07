@@ -44,6 +44,16 @@ except (FileNotFoundError, Exception) as e:
 router = APIRouter(tags=["predict"])
 
 
+def risk_level(proba):
+    # Convert probability to risk level
+    if proba >= 0.80:
+        return "high"
+    elif proba >= 0.50:
+        return "medium"
+    else:
+        return "low"
+
+
 @router.post("/predict-model", response_model=PredictResponse)
 def predict_model(
     req: PredictRequest,
@@ -68,6 +78,15 @@ def predict_model(
         .first()
     )
 
+    if reported_email:
+        risk = risk_level(reported_email.proba)
+        return {
+            "phishing_probability": reported_email.proba,
+            "risk_level": risk,
+            "reasons": [f"Model prediction: {(reported_email.proba * 100):.1f}% phishing probability"],
+            "action": "warn" if risk in ("medium", "high") else "none"
+        }
+
     try:
         raw_text = req.bodyText
         text, features = transform_email_text(clean_text(raw_text))
@@ -79,13 +98,7 @@ def predict_model(
         df = pd.DataFrame([row])
         proba = model.predict_proba(df)[0][1]
 
-        # Convert probability to risk level
-        if proba >= 0.80:
-            risk = "high"
-        elif proba >= 0.50:
-            risk = "medium"
-        else:
-            risk = "low"
+        risk = risk_level(proba)
 
         if not reported_email:
             reported_email = ReportedEmail(
@@ -98,6 +111,7 @@ def predict_model(
             )
             db.add(reported_email)
             db.flush()
+            db.commit()
 
         return {
             "phishing_probability": float(proba),
