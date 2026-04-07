@@ -26,7 +26,8 @@ class User(Base):
     last_name = Column(String(100), nullable=False)
 
     # Relationships
-    reported_emails = relationship("ReportedEmail", back_populates="user")
+    # ADDED CASCADE: Deletes reported emails when a user is deleted
+    reported_emails = relationship("ReportedEmail", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username!r}, role={self.role!r})>"
@@ -47,7 +48,9 @@ class ReportedEmail(Base):
 
     # Relationships
     user = relationship("User", back_populates="reported_emails")
-    feedbacks = relationship("Feedback", back_populates="reported_email")
+    
+    # ADDED CASCADE: Deletes feedback when a reported email is deleted
+    feedbacks = relationship("Feedback", back_populates="reported_email", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<ReportedEmail(id={self.id}, sender={self.sender!r}, is_safe={self.is_safe})>"
