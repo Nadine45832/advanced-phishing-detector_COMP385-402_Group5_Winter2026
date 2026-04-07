@@ -105,7 +105,16 @@ function loadScanResult() {
     }
 
     chrome.tabs.sendMessage(tab.id, { action: "getResult" }, (result) => {
-      if (chrome.runtime.lastError || !result) { showEmpty(); return; }
+      if (chrome.runtime.lastError) {
+        const raw = chrome.runtime.lastError.message || "Unknown extension error.";
+        if (/Extension context invalidated|Receiving end does not exist|message port closed/i.test(raw)) {
+          showActionError("Extension was updated. Refresh Gmail, then click Re-scan.");
+          return;
+        }
+        showEmpty();
+        return;
+      }
+      if (!result) { showEmpty(); return; }
       renderResult(result);
     });
   });
@@ -115,6 +124,12 @@ function showEmpty() {
   emptyState.style.display = "block";
   resultArea.style.display = "none";
   feedbackSection.style.display = "none";
+}
+
+function showActionError(msg) {
+  showEmpty();
+  feedbackStatus.textContent = msg;
+  feedbackStatus.className = "error";
 }
 
 function renderResult(result) {
@@ -240,6 +255,13 @@ function rescan() {
     chrome.tabs.sendMessage(tabs[0].id, { action: "rescan" }, (result) => {
       rescanBtn.disabled = false;
       rescanBtn.textContent = "Re-scan";
+      if (chrome.runtime.lastError) {
+        const raw = chrome.runtime.lastError.message || "Unknown extension error.";
+        if (/Extension context invalidated|Receiving end does not exist|message port closed/i.test(raw)) {
+          showActionError("Extension was updated. Refresh Gmail, then Re-scan.");
+          return;
+        }
+      }
       if (result) renderResult(result);
       else showEmpty();
     });

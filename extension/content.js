@@ -83,7 +83,11 @@ function sendToBackground(msg) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(msg, (response) => {
       if (chrome.runtime.lastError) {
-        resolve({ ok: false, error: chrome.runtime.lastError.message });
+        const raw = chrome.runtime.lastError.message || "Unknown runtime error";
+        const normalized = /Extension context invalidated|Receiving end does not exist|message port closed/i.test(raw)
+          ? "Extension was reloaded. Refresh the Gmail tab and scan again."
+          : raw;
+        resolve({ ok: false, error: normalized });
       } else {
         resolve(response || { ok: false, error: "No response from background." });
       }

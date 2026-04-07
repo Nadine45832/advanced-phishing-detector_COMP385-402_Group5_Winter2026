@@ -15,4 +15,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["sh", "-c", "if [ ! -f data/phishing_model.pkl ]; then echo 'Model not found, training...'; cd data ; python create_model.py ; cd .. ; fi ; uvicorn app:app --host 0.0.0.0 --port 8000 --reload"]

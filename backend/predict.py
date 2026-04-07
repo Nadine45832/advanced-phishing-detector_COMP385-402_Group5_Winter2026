@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 import joblib
+from pathlib import Path
 from shared.clean_text import clean_text, transform_email_text
 import pandas as pd
 
@@ -32,11 +33,13 @@ class PredictResponse(BaseModel):
 
 
 # Load model with error handling
+MODEL_PATH = Path(__file__).resolve().parent / "data" / "phishing_model.pkl"
+
 try:
-    model = joblib.load("data/phishing_model.pkl")
+    model = joblib.load(MODEL_PATH)
     model_available = True
 except (FileNotFoundError, Exception) as e:
-    print(f"Warning: Could not load model: {e}")
+    print(f"Warning: Could not load model from {MODEL_PATH}: {e}")
     model = None
     model_available = False
 

@@ -25,6 +25,8 @@ Advanced Email Phishing Detector.
 From the repository root:
 1. `docker compose up --build`
 
+On first backend startup, if `backend/data/phishing_model.pkl` is missing, the container will train and generate it automatically before starting the API.
+
 ## Rebuild And Restart
 1. `docker compose down`
 2. `docker compose up --build`
