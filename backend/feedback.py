@@ -5,7 +5,7 @@ from typing import Optional
 
 from database import get_db
 from auth import get_current_user
-from models import Feedback, ReportedEmail, User
+from models import Feedback, ReportedEmail, User, UserRole
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
 
@@ -106,7 +106,7 @@ def get_feedbacks(
         .join(Feedback.reported_email)
     )
 
-    if current_user.role == "admin":
+    if current_user.role == UserRole.admin:
         if user_id is not None:
             query = query.filter(ReportedEmail.user_id == user_id)
     else:
@@ -141,5 +141,15 @@ def delete_feedback(
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
     if not feedback:
         raise HTTPException(status_code=404, detail="Feedback not found")
+
+    if current_user.role != UserRole.admin:
+        reported_email = (
+            db.query(ReportedEmail)
+            .filter(ReportedEmail.id == feedback.reported_email_id)
+            .first()
+        )
+        if not reported_email or reported_email.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="You can only delete your own feedback")
+
     db.delete(feedback)
     db.commit()

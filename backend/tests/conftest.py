@@ -38,6 +38,7 @@ def setup_database():
     Base.metadata.create_all(bind=database.engine)
     yield
     Base.metadata.drop_all(bind=database.engine)
+    database.engine.dispose()
 
     db_file = Path("./test.db")
     if db_file.exists():
@@ -73,7 +74,7 @@ def normal_user(db_session):
     user = User(
         username="testuser",
         password_hash=hash_password("password123"),
-        role=UserRole.viewer,
+        role=UserRole.user,
         first_name="Test",
         last_name="User",
     )

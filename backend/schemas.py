@@ -5,13 +5,13 @@ from enum import Enum
 class UserRole(str, Enum):
     admin = "admin"
     editor = "editor"
-    viewer = "viewer"
+    user = "user"
 
 
 class UserCreate(BaseModel):
     username: str
     password_hash: str
-    role: UserRole = UserRole.viewer
+    role: UserRole = UserRole.user
     first_name: str
     last_name: str
 

@@ -1,6 +1,6 @@
 
 DO $$ BEGIN
-    CREATE TYPE userrole AS ENUM ('admin', 'editor', 'viewer');
+    CREATE TYPE userrole AS ENUM ('admin', 'editor', 'user');
 EXCEPTION
     WHEN duplicate_object THEN NULL;
 END $$;
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     id            SERIAL       PRIMARY KEY,
     username      VARCHAR(50)  NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    role          userrole     NOT NULL DEFAULT 'viewer',
+    role          userrole     NOT NULL DEFAULT 'user',
     first_name    VARCHAR(100) NOT NULL,
     last_name     VARCHAR(100) NOT NULL
 );

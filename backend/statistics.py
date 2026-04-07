@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
 
 from database import get_db
 from auth import get_current_user
-from models import ReportedEmail, User
+from models import ReportedEmail, User, UserRole
 
 import datetime
 
@@ -19,6 +19,14 @@ def get_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if current_user.role != UserRole.admin:
+        if user_id is not None and user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only access your own stats",
+            )
+        user_id = current_user.id
+
     now = datetime.datetime.utcnow()
     day30 = now - datetime.timedelta(days=30)
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import User
+from models import User, UserRole
 from schemas import UserCreate, UserResponse
 from auth import hash_password, get_current_user
 
@@ -15,7 +15,7 @@ def list_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.role == UserRole.admin:
         return db.query(User).all()
 
     return db.query(User).filter(User.id == current_user.id).all()
@@ -27,7 +27,7 @@ def create_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "admin":
+    if current_user.role != UserRole.admin:
         raise HTTPException(status_code=400, detail="Only admins can create a new user")
 
     existing = db.query(User).filter(User.username == user_in.username).first()
@@ -55,7 +55,7 @@ def delete_user(
     current_user: User = Depends(get_current_user)
 ):
     # 1. Security Check: Only admins can delete
-    if current_user.role != "admin":
+    if current_user.role != UserRole.admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Only admins can delete users"

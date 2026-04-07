@@ -94,3 +94,34 @@ def test_get_stats_filter_by_user(client, db_session, admin_user, normal_user, a
     assert response.status_code == 200
     data = response.json()
     assert data["pie"]["phishing"] == 1
+
+
+def test_get_stats_non_admin_cannot_filter_other_user(client, db_session, admin_user, normal_user, normal_auth_headers):
+    now = datetime.utcnow()
+
+    db_session.add_all([
+        ReportedEmail(
+            title="User1 Mail",
+            sender="u1@test.com",
+            user_id=normal_user.id,
+            proba=0.95,
+            is_detected=True,
+            is_safe=False,
+            reported_at=now - timedelta(days=1),
+        ),
+        ReportedEmail(
+            title="Admin Mail",
+            sender="admin@test.com",
+            user_id=admin_user.id,
+            proba=0.1,
+            is_detected=False,
+            is_safe=True,
+            reported_at=now - timedelta(days=1),
+        ),
+    ])
+    db_session.commit()
+
+    response = client.get(f"/stats?user_id={admin_user.id}", headers=normal_auth_headers)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "You can only access your own stats"

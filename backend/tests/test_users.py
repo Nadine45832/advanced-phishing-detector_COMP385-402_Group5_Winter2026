@@ -2,7 +2,7 @@ def test_register_user_success(client, admin_auth_headers):
     payload = {
         "username": "newuser",
         "password_hash": "mypassword",
-        "role": "viewer",
+        "role": "user",
         "first_name": "New",
         "last_name": "User"
     }
@@ -12,7 +12,7 @@ def test_register_user_success(client, admin_auth_headers):
     assert response.status_code == 201
     data = response.json()
     assert data["username"] == "newuser"
-    assert data["role"] == "viewer"
+    assert data["role"] == "user"
     assert data["first_name"] == "New"
     assert data["last_name"] == "User"
     assert "id" in data
@@ -22,7 +22,7 @@ def test_register_user_duplicate_username(client, normal_user, admin_auth_header
     payload = {
         "username": "testuser",
         "password_hash": "testpass",
-        "role": "viewer",
+        "role": "user",
         "first_name": "Test",
         "last_name": "User"
     }
@@ -37,7 +37,7 @@ def test_register_user_non_admin(client, normal_auth_headers):
     payload = {
         "username": "testuser",
         "password_hash": "testpass",
-        "role": "viewer",
+        "role": "user",
         "first_name": "Test",
         "last_name": "User"
     }

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { API } from "../api";
 
-export function Users({ token }) {
+export function Users({ token, currentUser }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const isAdmin = currentUser?.role === "admin";
+  const formatRole = (role) => role ? role.charAt(0).toUpperCase() + role.slice(1) : "";
  
   useEffect(() => {
     fetch(`${API}/users`, { headers: { Authorization: `Bearer ${token}` } })
@@ -63,7 +65,7 @@ export function Users({ token }) {
                 <th>Name</th>
                 <th>Username</th>
                 <th>Role</th>
-                <th>Actions</th>
+                {isAdmin && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -72,22 +74,24 @@ export function Users({ token }) {
                   <td className="td-muted">{u.id}</td>
                   <td>{u.first_name} {u.last_name}</td>
                   <td className="td-muted">{u.username}</td>
-                  <td><span className="badge">{u.role}</span></td>
-                  <td>
-                    <button 
-                      onClick={() => handleDelete(u.id)}
-                      style={{
-                        backgroundColor: "#ef4444", 
-                        color: "white", 
-                        border: "none", 
-                        padding: "4px 8px", 
-                        borderRadius: "4px", 
-                        cursor: "pointer"
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </td>
+                  <td><span className="badge">{formatRole(u.role)}</span></td>
+                  {isAdmin && (
+                    <td>
+                      <button 
+                        onClick={() => handleDelete(u.id)}
+                        style={{
+                          backgroundColor: "#ef4444", 
+                          color: "white", 
+                          border: "none", 
+                          padding: "4px 8px", 
+                          borderRadius: "4px", 
+                          cursor: "pointer"
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

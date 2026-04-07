@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine
+from database import engine, migrate_user_role_enum
 from models import Base
 from feedback import router as feedback_router
 from users import router as users_router
@@ -9,6 +9,7 @@ from login import router as login_router
 from statistics import router as stats_router
 
 Base.metadata.create_all(bind=engine)
+migrate_user_role_enum(engine)
 
 app = FastAPI(title="Phishing Detector API", version="1.0")
 

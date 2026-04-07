@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import { API } from '../api';
 
-export function CreateUser({ token }) {
-  const blank = { username: "", password_hash: "", role: "viewer", first_name: "", last_name: "" };
+export function CreateUser({ token, currentUser }) {
+  const blank = { username: "", password_hash: "", role: "user", first_name: "", last_name: "" };
   const [form, setForm] = useState(blank);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const isAdmin = currentUser?.role === "admin";
+
+  if (!isAdmin) {
+    return null;
+  }
  
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
  
@@ -57,7 +62,7 @@ export function CreateUser({ token }) {
           <div className="field">
             <label>Role</label>
             <select value={form.role} onChange={update("role")}>
-              <option value="viewer">Viewer</option>
+              <option value="user">User</option>
               <option value="editor">Editor</option>
               <option value="admin">Admin</option>
             </select>

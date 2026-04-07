@@ -9,6 +9,24 @@ import { Stats } from './components/Stats';
 
 const EXP = 60 * 60 * 1000;
 
+function normalizeRole(role) {
+  return role === "viewer" ? "user" : role;
+}
+
+function normalizeSession(session) {
+  if (!session?.user) {
+    return session;
+  }
+
+  return {
+    ...session,
+    user: {
+      ...session.user,
+      role: normalizeRole(session.user.role),
+    },
+  };
+}
+
 export default function App() {
   const [authenticating, setAuthenticating] = useState(true);
   const [session, setSession] = useState(null);
@@ -26,7 +44,7 @@ export default function App() {
     } catch (e) {}
 
     if (token && Date.now() - token.time < EXP) {
-      setSession(token.token);
+      setSession(normalizeSession(token.token));
       setAuthenticating(false);
       return;
     }
@@ -35,14 +53,23 @@ export default function App() {
   }, [session]);
 
   const setLogin = (token) => {
-      setSession(token);
-      localStorage.setItem("_token", JSON.stringify({ token, time: Date.now() }));
+      const normalized = normalizeSession(token);
+      setSession(normalized);
+      localStorage.setItem("_token", JSON.stringify({ token: normalized, time: Date.now() }));
   };
 
   const onLogout = () => {
     localStorage.removeItem("_token");
     setSession(null);
   }
+
+  const isAdmin = session?.user?.role === "admin";
+
+  useEffect(() => {
+    if (session && !isAdmin && page === "create") {
+      setPage("users");
+    }
+  }, [session, isAdmin, page]);
 
 
   if (authenticating) {
@@ -54,10 +81,10 @@ export default function App() {
       {session ? (
         <>
           <Header currentUser={session.user} page={page} onNav={setPage} onLogout={onLogout} />
-          {page === "users"  && <Users token={session.access_token} />}
-          {page === "create" && <CreateUser token={session.access_token} />}
+          {page === "users"  && <Users token={session.access_token} currentUser={session.user} />}
+          {page === "create" && isAdmin && <CreateUser token={session.access_token} currentUser={session.user} />}
           {page === "feedback" && <Feedbacks token={session.access_token} />}
-          {page === "stats" && <Stats token={session.access_token} />}
+          {page === "stats" && <Stats token={session.access_token} currentUser={session.user} />}
         </>
       ) : (
         <Login onLogin={setLogin} />

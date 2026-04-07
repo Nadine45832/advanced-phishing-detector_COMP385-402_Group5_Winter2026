@@ -18,5 +18,5 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid username or password",
         )
 
-    token = create_access_token({"sub": str(user.id), "username": user.username, "role": user.role})
+    token = create_access_token({"sub": str(user.id), "username": user.username, "role": user.role.value})
     return TokenResponse(access_token=token, user=UserResponse.from_orm(user))

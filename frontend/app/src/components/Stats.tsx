@@ -29,20 +29,34 @@ function StatCard({ title, children, loading }) {
   );
 }
 
-export function Stats({ token }) {
+export function Stats({ token, currentUser }) {
   const [users, setUsers]       = useState([]);
   const [userId, setUserId]     = useState("all");
   const [stats, setStats]       = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState("");
+  const isAdmin = currentUser?.role === "admin";
 
   // Fetch user list for dropdown
   useEffect(() => {
-    fetch(`${API}/users`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.ok ? r.json() : [])
-      .then(setUsers)
-      .catch(() => {});
-  }, [token]);
+    if (!currentUser) {
+      return;
+    }
+
+    if (isAdmin) {
+      fetch(`${API}/users`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.ok ? r.json() : [])
+        .then((data) => {
+          setUsers(data);
+          setUserId("all");
+        })
+        .catch(() => {});
+      return;
+    }
+
+    setUsers([currentUser]);
+    setUserId(String(currentUser.id));
+  }, [token, currentUser, isAdmin]);
 
   // Fetch stats whenever user filter changes
   useEffect(() => {
@@ -85,20 +99,27 @@ export function Stats({ token }) {
             <h2 className="stats-title">Analytics</h2>
             <p className="stats-sub">Email threat overview</p>
           </div>
-          <select
-            className="user-select"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-          >
-            <option value="all">All users</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.first_name && u.last_name
-                  ? `${u.first_name} ${u.last_name}`
-                  : u.username}
-              </option>
-            ))}
-          </select>
+          {isAdmin ? (
+            <select
+              className="user-select"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            >
+              <option value="all">All users</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.first_name && u.last_name
+                    ? `${u.first_name} ${u.last_name}`
+                    : u.username}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="user-pill">
+              <span>{currentUser?.first_name && currentUser?.last_name ? `${currentUser.first_name} ${currentUser.last_name}` : currentUser?.username}</span>
+              <span className="badge">your stats</span>
+            </div>
+          )}
         </div>
 
         {error && (

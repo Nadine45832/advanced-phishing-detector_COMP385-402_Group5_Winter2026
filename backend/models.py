@@ -12,7 +12,7 @@ Base = declarative_base()
 class UserRole(str, enum.Enum):
     admin = "admin"
     editor = "editor"
-    viewer = "viewer"
+    user = "user"
 
 
 class User(Base):
@@ -21,7 +21,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.viewer)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.user)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
 
