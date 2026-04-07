@@ -25,7 +25,6 @@ const feedbackComment = document.getElementById("feedback-comment");
 const feedbackStatus  = document.getElementById("feedback-status");
 const rescanBtn       = document.getElementById("rescan-btn");
 
-// ── Background messenger ──────────────────────────────────────────────────
 function sendToBackground(msg) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(msg, (response) => {
@@ -38,7 +37,6 @@ function sendToBackground(msg) {
   });
 }
 
-// ── View helpers ──────────────────────────────────────────────────────────
 function showView(view) {
   loginView.classList.remove("active");
   mainView.classList.remove("active");
@@ -49,7 +47,6 @@ function setLoginError(msg) {
   loginError.textContent = msg;
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────
 async function login() {
   const username = usernameInput.value.trim();
   const password = passwordInput.value;
@@ -92,7 +89,6 @@ function logout() {
   });
 }
 
-// ── Main view ─────────────────────────────────────────────────────────────
 function initMainView(username) {
   userEmailEl.textContent = username;
   userInfo.style.display = "flex";
@@ -100,7 +96,6 @@ function initMainView(username) {
   loadScanResult();
 }
 
-// ── Scan result ───────────────────────────────────────────────────────────
 function loadScanResult() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tab = tabs[0];

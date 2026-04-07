@@ -93,7 +93,13 @@ function sendToBackground(msg) {
 
 async function callPredictApi(payload) {
   const response = await sendToBackground({ action: "predict", payload });
-  if (!response.ok) throw new Error(response.error || "Predict failed");
+  if (!response.ok) {
+      if (response.error === "auth") {
+         return undefined;
+      }
+
+      throw new Error(response.error || "Predict failed");
+  }
   return response.data;
 }
 
@@ -271,6 +277,12 @@ async function runDetection() {
 
   try {
     const result = await callPredictApi(email);
+
+    if (!result) {
+      return;
+    }
+
+
     storeResult({ ...result, subject: email.subject, from: email.from, scannedAt: new Date().toISOString() });
     showRiskBanner({ ...result, subject: email.subject, from: email.from, scannedAt: new Date().toISOString() });
   } catch (err) {

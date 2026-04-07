@@ -4,6 +4,10 @@ async function apiFetch(endpoint, { method = "POST", body, useToken = false, tim
   const stored = await chrome.storage.local.get(["authToken"]);
   const token = stored.authToken;
 
+  if (useToken && !token) {
+    return { ok: false, status: 0, error: "auth", isNoAuth: true }
+  }
+
   const headers = { "Content-Type": "application/json" };
   if (useToken && token) headers["Authorization"] = `Bearer ${token}`;
 
