@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from enum import Enum
+from typing import Optional
 
 
 class UserRole(str, Enum):
@@ -25,6 +26,14 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    password_hash: Optional[str] = None
+    role: Optional[UserRole] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
 
 
 class LoginRequest(BaseModel):

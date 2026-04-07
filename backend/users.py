@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import User, UserRole
-from schemas import UserCreate, UserResponse
+from schemas import UserCreate, UserResponse, UserUpdate
 from auth import hash_password, get_current_user
 
 
@@ -45,6 +45,49 @@ def create_user(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.put("/{user_id}", response_model=UserResponse)
+def update_user(
+    user_id: int,
+    user_in: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    is_admin = current_user.role == UserRole.admin
+    is_self = current_user.id == user_id
+
+    if not is_admin and not is_self:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only edit your own profile")
+
+    if user_in.role is not None and not is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can change user roles")
+
+    if user_in.username and user_in.username != target_user.username:
+        existing = db.query(User).filter(User.username == user_in.username).first()
+        if existing:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username exists")
+        target_user.username = user_in.username
+
+    if user_in.password_hash:
+        target_user.password_hash = hash_password(user_in.password_hash)
+
+    if user_in.first_name is not None:
+        target_user.first_name = user_in.first_name
+
+    if user_in.last_name is not None:
+        target_user.last_name = user_in.last_name
+
+    if is_admin and user_in.role is not None:
+        target_user.role = user_in.role
+
+    db.commit()
+    db.refresh(target_user)
+    return target_user
 
 
 # --- NEW DELETE ENDPOINT ---

@@ -1,5 +1,6 @@
 export function Header({ currentUser, page, onNav, onLogout }) {
   const isAdmin = currentUser?.role === "admin";
+  const usersTabLabel = isAdmin ? "All Users" : "My Profile";
   const displayRole = currentUser?.role
     ? currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)
     : "";
@@ -10,7 +11,7 @@ export function Header({ currentUser, page, onNav, onLogout }) {
         <span className="logo">Advanced Phishing Detector</span>
         <nav className="nav">
           <button className={`nav-link ${page === "users" ? "active" : ""}`} onClick={() => onNav("users")}>
-            All Users
+            {usersTabLabel}
           </button>
           <button className={`nav-link ${page === "feedback" ? "active" : ""}`} onClick={() => onNav("feedback")}>
             Feedbacks
