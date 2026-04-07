@@ -155,7 +155,7 @@ All tests rely on fixtures defined in `conftest.py`:
 - **`setup_database`**: Creates/tears down test SQLite database (session-scoped)
 - **`db_session`**: Fresh database session for each test (function-scoped)
 - **`client`**: FastAPI TestClient with overridden database dependency
-- **`normal_user`**: Test user with "viewer" role
+- **`normal_user`**: Test user with "user" role
 - **`admin_user`**: Test user with "admin" role
 
 Example fixture usage in tests:
