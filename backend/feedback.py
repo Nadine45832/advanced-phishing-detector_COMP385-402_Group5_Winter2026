@@ -20,7 +20,6 @@ class FeedbackRequest(BaseModel):
     scanned_at: Optional[str] = None
 
 
-# --- UPDATED: Added response_model=dict ---
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=dict)
 def submit_feedback(
     body: FeedbackRequest,

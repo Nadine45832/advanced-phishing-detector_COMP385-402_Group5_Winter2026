@@ -51,7 +51,7 @@ def risk_level(proba):
     # Convert probability to risk level
     if proba >= 0.80:
         return "high"
-    elif proba >= 0.50:
+    elif proba >= 0.60:
         return "medium"
     else:
         return "low"
@@ -98,8 +98,10 @@ def predict_model(
             "clean_email_text": text,
             **features
         }
+
+        # predict how safe emails is. Bigger number safer email
         df = pd.DataFrame([row])
-        proba = model.predict_proba(df)[0][1]
+        proba = 1 - model.predict_proba(df)[0][1]
 
         risk = risk_level(proba)
 
@@ -110,7 +112,7 @@ def predict_model(
                 user_id=current_user.id,
                 proba=float(proba),
                 is_detected=risk in ("high", "medium"),
-                is_safe=risk == "low",
+                is_safe=risk != "high",
             )
             db.add(reported_email)
             db.flush()

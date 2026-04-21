@@ -74,4 +74,19 @@ def main():
     joblib.dump(model, "phishing_model.pkl")
 
 
+def debug_model():
+    df = pd.read_csv("debug.csv")
+
+    df = prepare(df)
+    model = joblib.load("phishing_model.pkl")
+
+    X = df[[CLEAN_TEXT_COLUMN] + URL_FEAT_COLS]
+    y = df[LABEL_COLUMN]
+
+    y_pred = model.predict(X)
+    y_proba = model.predict_proba(X)[:, 1]
+    print(y_pred, y_proba, y)
+
+
 main()
+# debug_model()
