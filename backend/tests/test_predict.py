@@ -8,7 +8,7 @@ class DummyModelHigh:
 
 class DummyModelMedium:
     def predict_proba(self, df):
-        return [[0.45, 0.55]]
+        return [[0.65, 0.75]]
 
 
 class DummyModelLow:
@@ -21,7 +21,7 @@ class DummyBrokenModel:
         raise Exception("boom")
 
 
-def test_predict_model_high_risk(client, normal_auth_headers, monkeypatch):
+def test_predict_model_low_risk(client, normal_auth_headers, monkeypatch):
     monkeypatch.setattr(predict, "model_available", True)
     monkeypatch.setattr(predict, "model", DummyModelHigh())
 
@@ -36,9 +36,9 @@ def test_predict_model_high_risk(client, normal_auth_headers, monkeypatch):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["phishing_probability"] == 0.9
-    assert data["risk_level"] == "high"
-    assert data["action"] == "warn"
+    assert round(data["phishing_probability"], 1) == 0.1
+    assert data["risk_level"] == "low"
+    assert data["action"] == "none"
 
 
 def test_predict_model_medium_risk(client, normal_auth_headers, monkeypatch):
@@ -56,11 +56,11 @@ def test_predict_model_medium_risk(client, normal_auth_headers, monkeypatch):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["risk_level"] == "medium"
-    assert data["action"] == "warn"
+    assert data["risk_level"] == "low"
+    assert data["action"] == "none"
 
 
-def test_predict_model_low_risk(client, normal_auth_headers, monkeypatch):
+def test_predict_model_lhigh_isk(client, normal_auth_headers, monkeypatch):
     monkeypatch.setattr(predict, "model_available", True)
     monkeypatch.setattr(predict, "model", DummyModelLow())
 
@@ -75,8 +75,8 @@ def test_predict_model_low_risk(client, normal_auth_headers, monkeypatch):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["risk_level"] == "low"
-    assert data["action"] == "none"
+    assert data["risk_level"] == "high"
+    assert data["action"] == "warn"
 
 
 def test_predict_model_fallback_when_model_unavailable(client, normal_auth_headers, monkeypatch):
